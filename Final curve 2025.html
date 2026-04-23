@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All-in-One Relay Calculator</title>
+    <style>
+        :root { --p: #0f172a; --a: #2563eb; --bg: #f8fafc; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify: center; padding: 20px; color: var(--p); }
+        .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h1 { text-align: center; font-size: 1.4rem; color: var(--a); margin-bottom: 1.5rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        .group { margin-bottom: 1rem; }
+        label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; color: #64748b; text-transform: uppercase; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; box-sizing: border-box; }
+        .result { margin-top: 2rem; background: #eff6ff; padding: 20px; border-radius: 12px; text-align: center; border: 2px solid #dbeafe; }
+        .res-label { font-size: 0.7rem; color: #1e40af; font-weight: 800; }
+        .res-val { font-size: 2.8rem; font-weight: 900; color: var(--a); display: block; }
+        .const-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
+        .const-item { background: #f8fafc; padding: 6px; border-radius: 6px; text-align: center; font-size: 0.75rem; border: 1px solid #f1f5f9; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Relay Calculator 2025</h1>
+    
+    <div class="group">
+        <label>Relay Model</label>
+        <select id="model" onchange="loadCurves()"></select>
+    </div>
+
+    <div class="group">
+        <label>Curve Type</label>
+        <select id="curve" onchange="calculate()"></select>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div class="group">
+            <label>Measured (I)</label>
+            <input type="number" id="i" value="12" step="0.1" oninput="calculate()">
+        </div>
+        <div class="group">
+            <label>Pickup (Gs)</label>
+            <input type="number" id="gs" value="3" step="0.1" oninput="calculate()">
+        </div>
+    </div>
+
+    <div class="group">
+        <label>Time Dial (TD)</label>
+        <input type="number" id="td" value="2" step="0.01" oninput="calculate()">
+    </div>
+
+    <div class="result">
+        <div class="res-label">TRIP TIME (t)</div>
+        <span id="tResult" class="res-val">0.0000</span>
+        <div class="res-label">SECONDS</div>
+    </div>
+
+    <div class="const-grid">
+        <div class="const-item">k: <b id="k">-</b></div>
+        <div class="const-item">a: <b id="a">-</b></div>
+        <div class="const-item">c: <b id="c">-</b></div>
+    </div>
+</div>
+
+<script>
+    const data = {"SEL": [{"name": "C1 IEC Standard Inverse", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "C2 IEC Very Inverse", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "C3 IEC Extremely Inverse", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "C4 IEC Long Time Inverse", "k": 120.0, "c": 0.0, "a": 1.0}, {"name": "C5 IEC Short Time Inverse", "k": 0.05, "c": 0.0, "a": 0.04}, {"name": "U1 Moderately Inverse", "k": 0.0104, "c": 0.0226, "a": 0.02}, {"name": "U2 Inverse", "k": 5.96, "c": 0.18, "a": 2.0}, {"name": "U3 Very Inverse", "k": 3.88, "c": 0.0963, "a": 2.0}, {"name": "U4 Extremely Inverse", "k": 5.67, "c": 0.0352, "a": 2.0}, {"name": "U5 Short Time Inverse", "k": 0.00342, "c": 0.00262, "a": 0.02}], "F650": [{"name": "IEC Curve A", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "IEC Curve B", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "IEC Curve C", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "IEC Short Time Inverse", "k": 0.05, "c": 0.0, "a": 0.04}, {"name": "IEC Long Time Inverse", "k": 120.0, "c": 0.0, "a": 1.0}, {"name": "IEEE Inverse", "k": 0.0515, "c": 0.114, "a": 0.02}, {"name": "IEEE Very Inverse", "k": 19.61, "c": 0.491, "a": 2.0}, {"name": "IEEE Extremely Inverse", "k": 28.2, "c": 0.1217, "a": 2.0}], "MICUM@": [{"name": "IEC Standard Inverse Time (SI)", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "IEC Very Inverse Time (VI)", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "IEC Extremely Inverse Time (EI)", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "IEC Long Time Inverse", "k": 120.0, "c": 0.0, "a": 1.0}, {"name": "IEEE Moderately Invertime Time (MI)", "k": 0.0515, "c": 0.114, "a": 0.02}, {"name": "IEEE Very Inverse Time (VI)", "k": 19.61, "c": 0.491, "a": 2.0}, {"name": "IEEE Extremely Inverse Time (EI)", "k": 28.2, "c": 0.1217, "a": 2.0}, {"name": "US Time Inverse (CO8)", "k": 5.95, "c": 0.18, "a": 2.0}, {"name": "US Short Time Inverse (CO2 P20)", "k": 0.02394, "c": 0.01694, "a": 0.02}, {"name": "US Short Time Inverse (CO2 P40)", "k": 0.16758, "c": 0.11858, "a": 0.02}], "SIEMENS": [{"name": "ANSI Inverse", "k": 8.9341, "c": 0.17966, "a": 2.0938}, {"name": "ANSI Short Inverse", "k": 0.2663, "c": 0.03393, "a": 1.2969}, {"name": "ANSI Long Inverse", "k": 5.6143, "c": 2.18592, "a": 1.0}, {"name": "ANSI Modertely Inverse", "k": 0.0103, "c": 0.0228, "a": 0.02}, {"name": "ANSI Very Inverse", "k": 3.922, "c": 0.0982, "a": 2.0}, {"name": "ANSI Extremelay Inverse", "k": 5.64, "c": 0.02434, "a": 2.0}, {"name": "ANSI Defenite Inverse", "k": 0.4797, "c": 0.021359, "a": 1.5625}, {"name": "IEC Curve A", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "IEC Curve B", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "IEC Curve C", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "IEC Long Time Inverse (B)", "k": 120.0, "c": 0.0, "a": 1.0}], "VIP300": [{"name": "IEC Standard Inverse SI", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "IEC Very Inverse VI", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "IEC Extremely Inverse EI", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "IEC Long Time Inverse", "k": 120.0, "c": 0.0, "a": 1.0}], "P114": [{"name": "IEC Standard Inverse SI", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "IEC Very Inverse VI", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "IEC Extremely Inverse EI", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "IEC Long Time Inverse", "k": 120.0, "c": 0.0, "a": 1.0}], "7SJ45": [{"name": "IEC NI", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "IEC VI", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "IEC EI", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "ANSI Modertely Inverse", "k": 0.0103, "c": 0.0228, "a": 0.02}, {"name": "ANSI Very Inverse", "k": 3.922, "c": 0.0982, "a": 2.0}, {"name": "ANSI Extremelay Inverse", "k": 5.64, "c": 0.02434, "a": 2.0}], "7SR45": [{"name": "IEC NI", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "IEC VI", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "IEC EI", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "IEC LTI", "k": 120.0, "c": 0.0, "a": 1.0}, {"name": "IEEE/ANSI-MI", "k": 0.0515, "c": 0.114, "a": 0.02}, {"name": "IEEE/ANSI-VI", "k": 19.61, "c": 0.491, "a": 2.0}, {"name": "IEEE/ANSI-EI", "k": 28.2, "c": 0.1217, "a": 2.0}], "VIP400": [{"name": "IEC Standard Inverse SIT OR IEC/A", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "IEC Very Inverse VIT OR IEC/B", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "IEC Extremely Inverse EIT OR IEC/C", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "IEC Long Time Inverse LTI", "k": 120.0, "c": 0.0, "a": 1.0}, {"name": "IEEE Moderately Invertime Time (MI) IEC/D", "k": 0.0103, "c": 0.0228, "a": 0.02}, {"name": "IEEE Very Inverse Time (VI) OR IEC/E", "k": 3.922, "c": 0.0982, "a": 2.0}, {"name": "IEEE Extremely Inverse Time (EI) OR IEC/F", "k": 5.64, "c": 0.02434, "a": 2.0}], "ABB SPAJ 140C": [{"name": "IEC Normal Inverse", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "IEC Very Inverse", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "IEC Extremely Inverse", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "IEC Long Time Inverse", "k": 120.0, "c": 0.0, "a": 1.0}], "REG603": [{"name": "IEC Normal Inverse", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "IEC Very Inverse", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "IEC Extremely Inverse", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "IEC Long Time Inverse", "k": 120.0, "c": 0.0, "a": 1.0}], "KCGG": [{"name": "IEC Short  Time inverse (ST30XDT)", "k": 0.05, "c": 0.0, "a": 0.04}, {"name": "IEC Standard Inverse (SI30XDT)", "k": 0.14, "c": 0.0, "a": 0.02}, {"name": "IEC Inverse (IN30XDT)", "k": 9.4, "c": 0.0, "a": 0.7}, {"name": "IEC Very Inverse (VI30XDT)", "k": 13.5, "c": 0.0, "a": 1.0}, {"name": "IEC Extremely Inverse (EI20XDT)", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "IEC Extremely Inverse (EI10XDT)", "k": 80.0, "c": 0.0, "a": 2.0}, {"name": "IEC Long Time Inverse (LT30XDT)", "k": 120.0, "c": 0.0, "a": 1.0}]};
+
+    const modSel = document.getElementById('model');
+    const curvSel = document.getElementById('curve');
+
+    function loadModels() {
+        for (let m in data) {
+            let opt = document.createElement('option');
+            opt.value = m; opt.innerText = m;
+            modSel.appendChild(opt);
+        }
+        loadCurves();
+    }
+
+    function loadCurves() {
+        const m = modSel.value;
+        curvSel.innerHTML = "";
+        data[m].forEach((c, i) => {
+            let opt = document.createElement('option');
+            opt.value = i; opt.innerText = c.name;
+            curvSel.appendChild(opt);
+        });
+        calculate();
+    }
+
+    function calculate() {
+        const m = modSel.value;
+        const idx = curvSel.value;
+        const iVal = parseFloat(document.getElementById('i').value);
+        const gsVal = parseFloat(document.getElementById('gs').value);
+        const tdVal = parseFloat(document.getElementById('td').value);
+        
+        const c = data[m][idx];
+        const M = iVal / gsVal;
+
+        document.getElementById('k').innerText = c.k;
+        document.getElementById('a').innerText = c.a;
+        document.getElementById('c').innerText = c.c;
+
+        if (M <= 1 || isNaN(M)) {
+            document.getElementById('tResult').innerText = "∞";
+            return;
+        }
+
+        // Standard Formula: t = TD * ( (k / (M^a - 1)) + c )
+        const t = tdVal * ( (c.k / (Math.pow(M, c.a) - 1)) + c.c );
+        document.getElementById('tResult').innerText = t.toFixed(4);
+    }
+
+    window.onload = loadModels;
+</script>
+
+</body>
+</html>
